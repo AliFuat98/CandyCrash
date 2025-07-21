@@ -61,7 +61,7 @@ public class GridSystem2D<T> {
 
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                CreateWorldText(parent, text: $"{x},{y}", GetWorldPositionCenter(x, y), dir: coordinateConverter.Forward);
+                CreateWorldText(parent, text: $"{x},{y}", GetWorldPositionCenter(x, y), dir: coordinateConverter.Forward, color: Color.black);
                 Debug.DrawLine(start: GetWorldPosition(x, y), end: GetWorldPosition(x, y + 1), color: Color.white, duration: duration);
                 Debug.DrawLine(start: GetWorldPosition(x, y), end: GetWorldPosition(x + 1, y), color: Color.white, duration: duration);
             }
@@ -110,5 +110,21 @@ public class GridSystem2D<T> {
             return new Vector2Int(x, y);
         }
         public override Vector3 Forward => Vector3.forward;
+    }
+
+    public class HorizontalConverter : CoordinateConverter {
+        public override Vector3 GridToWorld(int x, int y, float cellSize, Vector3 origin) {
+            return new Vector3(x, y: 0, z: y) * cellSize + origin;
+        }
+        public override Vector3 GridToWorldCenter(int x, int y, float cellSize, Vector3 origin) {
+            return new Vector3(x: (x * cellSize) + (0.5f * cellSize), y: 0, z: (y * cellSize) + (0.5f * cellSize)) + origin;
+        }
+        public override Vector2Int WorldToGrid(Vector3 worldPosition, float cellSize, Vector3 origin) {
+            Vector3 gridPosition = (worldPosition - origin) / cellSize;
+            int x = Mathf.FloorToInt(gridPosition.x);
+            int y = Mathf.FloorToInt(gridPosition.z);
+            return new Vector2Int(x, y);
+        }
+        public override Vector3 Forward => -Vector3.up;
     }
 }

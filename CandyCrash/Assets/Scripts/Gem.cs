@@ -1,3 +1,13 @@
-public class Gem {
+using UnityEngine;
 
+[RequireComponent(typeof(SpriteRenderer))]
+public class Gem : MonoBehaviour {
+    GemType _gemType;
+    public GemType GemType {
+        get { return _gemType; }
+        set {
+            GetComponent<SpriteRenderer>().sprite = value.sprite;
+            _gemType = value;
+        }
+    }
 }
