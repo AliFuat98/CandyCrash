@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
-
 public class Match3 : MonoBehaviour
 {
     [SerializeField] int width = 8;
