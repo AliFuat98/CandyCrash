@@ -13,20 +13,24 @@ public class Match3 : MonoBehaviour
     [SerializeField] Ease gemEase = Ease.InQuad;
     [SerializeField] Gem gemPrefab;
     [SerializeField] GemType[] gemTypes;
+    [SerializeField] GameObject explosionVfx;
 
     GridSystem2D<GridObject<Gem>> grid;
     InputReader inputReader;
+    AudioManager audioManager;
 
-    Vector2Int selectedGem = Vector2Int.one * -1;
+    Vector2Int selectedGem;
 
     void Awake()
     {
         inputReader = GetComponent<InputReader>();
+        audioManager = GetComponent<AudioManager>();
     }
     void Start()
     {
         InitializeGrid();
         inputReader.Fire += OnGemSelected;
+        selectedGem = Vector2Int.one * -1;
     }
     void OnDestroy()
     {
@@ -48,10 +52,12 @@ public class Match3 : MonoBehaviour
         if (selectedGem == gridPos)
         {
             DeselectGem();
+            audioManager.PlayDeselect();
         }
         else if (selectedGem == Vector2Int.one * -1)
         {
             SelectGem(gridPos);
+            audioManager.PlayClick();
         }
         else
         {
@@ -81,7 +87,8 @@ public class Match3 : MonoBehaviour
                 if (grid.GetValue(x, y) == null)
                 {
                     CreateGem(x, y);
-                    // play sfx
+                    audioManager.PlayPop();
+
                     yield return new WaitForSeconds(0.1f);
                 }
             }
@@ -107,10 +114,11 @@ public class Match3 : MonoBehaviour
                     grid.SetValue(x, i, null);
 
                     upperGem.transform
-                        .DOLocalMove(endValue: grid.GetWorldPositionCenter(x, y), duration: 0.5f)
+                        .DOLocalMove(endValue: grid.GetWorldPositionCenter(x, y), duration: 0.1f)
                         .SetEase(gemEase);
 
                     // play sfx
+                    audioManager.PlayWoosh();
 
                     yield return new WaitForSeconds(0.1f);
                     break;
@@ -120,14 +128,14 @@ public class Match3 : MonoBehaviour
     }
     IEnumerator ExploadeGems(List<Vector2Int> matches)
     {
-        // TODO: SFX play
+        audioManager.PlayPop();
 
         foreach (var match in matches)
         {
             var gem = grid.GetValue(match.x, match.y).GetValue();
             grid.SetValue(match.x, match.y, null);
 
-            // ExplodeVFX(match);
+            ExplodeVFX(match);
 
             gem.transform.DOPunchScale(punch: Vector3.one * 0.1f, duration: 0.1f, vibrato: 1, elasticity: 0.5f);
             yield return new WaitForSeconds(0.1f);
@@ -135,6 +143,14 @@ public class Match3 : MonoBehaviour
             gem.DestroyGem();
         }
     }
+
+    void ExplodeVFX(Vector2Int match)
+    {
+        var vfX = Instantiate(explosionVfx, transform);
+        vfX.transform.position = grid.GetWorldPositionCenter(match.x, match.y);
+        Destroy(vfX, .5f);
+    }
+
     List<Vector2Int> FindMatches()
     {
         HashSet<Vector2Int> matches = new();
@@ -177,6 +193,15 @@ public class Match3 : MonoBehaviour
                     matches.Add(new Vector2Int(x, y + 2));
                 }
             }
+        }
+
+        if (matches.Count == 0)
+        {
+            audioManager.PlayNoMatch();
+        }
+        else
+        {
+            audioManager.PlayMatch();
         }
 
         return new List<Vector2Int>(matches);
