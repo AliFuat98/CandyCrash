@@ -146,9 +146,14 @@ public class Match3 : MonoBehaviour
 
     void ExplodeVFX(Vector2Int match)
     {
-        var vfX = Instantiate(explosionVfx, transform);
-        vfX.transform.position = grid.GetWorldPositionCenter(match.x, match.y);
-        Destroy(vfX, .5f);
+        Vector3 spawnPos = grid.GetWorldPositionCenter(match.x, match.y);
+        StartCoroutine(RelaseVfxDelay(ObjectPoolManager.SpawnObject(explosionVfx, spawnPos, Quaternion.identity, ObjectPoolManager.PoolType.ParticleSystem)));
+    }
+
+    IEnumerator RelaseVfxDelay(GameObject obj)
+    {
+        yield return new WaitForSeconds(0.5f);
+        ObjectPoolManager.ReturnObjectToPool(obj, ObjectPoolManager.PoolType.ParticleSystem);
     }
 
     List<Vector2Int> FindMatches()
