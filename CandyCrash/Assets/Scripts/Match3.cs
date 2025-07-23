@@ -18,11 +18,17 @@ public class Match3 : MonoBehaviour
     [SerializeField] GemType[] gemTypes;
     [SerializeField] GameObject explosionVfx;
 
+    [Header("Selected Gem")]
+    [SerializeField] float pulseScale = 1.2f;
+    [SerializeField] float pulseDuration = 0.5f;
+
     GridSystem2D<GridObject<Gem>> grid;
     InputReader inputReader;
     AudioManager audioManager;
 
     Vector2Int selectedGem;
+    Vector3 originalScale;
+
     bool isBussy;
 
     void Awake()
@@ -43,8 +49,26 @@ public class Match3 : MonoBehaviour
     }
     bool IsEmptyPosition(Vector2Int gridPos) => grid.GetValue(gridPos.x, gridPos.y) == null;
     bool IsValidPosition(Vector2Int gridPos) => gridPos.x >= 0 && gridPos.y >= 0 && gridPos.x < width && gridPos.y < height;
-    void SelectGem(Vector2Int gridPos) => selectedGem = gridPos;
-    void DeselectGem() => selectedGem = Vector2Int.one * -1;
+    void SelectGem(Vector2Int gridPos)
+    {
+        selectedGem = gridPos;
+
+        var gem = grid.GetValue(gridPos.x, gridPos.y).GetValue();
+        originalScale = gem.transform.localScale;
+
+        gem.transform.DOScale(originalScale * pulseScale, pulseDuration)
+            .SetEase(Ease.InOutSine)
+            .SetLoops(-1, LoopType.Yoyo);
+    }
+    void DeselectGem()
+    {
+        var gem = grid.GetValue(selectedGem.x, selectedGem.y).GetValue();
+
+        selectedGem = Vector2Int.one * -1;
+
+        DOTween.Kill(gem.transform);
+        gem.transform.localScale = originalScale;
+    }
     bool IsSameGemType(Vector2Int posA, Vector2Int posB)
     {
         var gemtypeA = grid.GetValue(posA.x, posA.y).GetValue().GemType;
@@ -60,6 +84,7 @@ public class Match3 : MonoBehaviour
             new(posA.x+1,posA.y), // right
             new(posA.x-1,posA.y) // left
         };
+
         return adjancents.Contains(posB);
     }
 
@@ -106,6 +131,8 @@ public class Match3 : MonoBehaviour
     {
         try
         {
+            DeselectGem();
+
             yield return StartCoroutine(SwapGems(gridPosA, gridPosB));
 
             HashSet<Vector2Int> firstMatches = FindMatches(gridPosA);
@@ -124,7 +151,6 @@ public class Match3 : MonoBehaviour
             {
                 audioManager.PlayNoMatch();
                 yield return StartCoroutine(SwapGems(gridPosB, gridPosA));
-                DeselectGem();
                 yield break;
             }
 
@@ -133,8 +159,6 @@ public class Match3 : MonoBehaviour
             yield return StartCoroutine(ExploadeGems(firstMatches.ToList(), secondMatches.ToList()));
             yield return StartCoroutine(MakeGemsFall());
             yield return StartCoroutine(FillEmptySpots());
-
-            DeselectGem();
         }
         finally
         {
