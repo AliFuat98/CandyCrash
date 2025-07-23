@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 201166992a3823f46b59e3c29748d9c2, type: 3}
   m_Name: PurpleGem
   m_EditorClassIdentifier: 
-  sprite: {fileID: -1050293518, guid: dcce20007861fe0429327f78b3986769, type: 3}
+  sprite: {fileID: -6457601064782889675, guid: 513a07ae6ab704c4192db608f6863a2c, type: 3}

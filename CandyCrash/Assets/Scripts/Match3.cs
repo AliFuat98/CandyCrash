@@ -18,16 +18,11 @@ public class Match3 : MonoBehaviour
     [SerializeField] GemType[] gemTypes;
     [SerializeField] GameObject explosionVfx;
 
-    [Header("Selected Gem")]
-    [SerializeField] float pulseScale = 1.2f;
-    [SerializeField] float pulseDuration = 0.5f;
-
     GridSystem2D<GridObject<Gem>> grid;
     InputReader inputReader;
     AudioManager audioManager;
 
     Vector2Int selectedGem;
-    Vector3 originalScale;
 
     bool isBussy;
 
@@ -39,6 +34,8 @@ public class Match3 : MonoBehaviour
     void Start()
     {
         InitializeGrid();
+
+        inputReader.Fire -= OnGemSelected;
         inputReader.Fire += OnGemSelected;
         selectedGem = Vector2Int.one * -1;
         isBussy = false;
@@ -52,22 +49,14 @@ public class Match3 : MonoBehaviour
     void SelectGem(Vector2Int gridPos)
     {
         selectedGem = gridPos;
-
         var gem = grid.GetValue(gridPos.x, gridPos.y).GetValue();
-        originalScale = gem.transform.localScale;
-
-        gem.transform.DOScale(originalScale * pulseScale, pulseDuration)
-            .SetEase(Ease.InOutSine)
-            .SetLoops(-1, LoopType.Yoyo);
+        gem.OnSelect();
     }
     void DeselectGem()
     {
         var gem = grid.GetValue(selectedGem.x, selectedGem.y).GetValue();
-
         selectedGem = Vector2Int.one * -1;
-
-        DOTween.Kill(gem.transform);
-        gem.transform.localScale = originalScale;
+        gem.OnDeselect();
     }
     bool IsSameGemType(Vector2Int posA, Vector2Int posB)
     {
@@ -84,7 +73,6 @@ public class Match3 : MonoBehaviour
             new(posA.x+1,posA.y), // right
             new(posA.x-1,posA.y) // left
         };
-
         return adjancents.Contains(posB);
     }
 

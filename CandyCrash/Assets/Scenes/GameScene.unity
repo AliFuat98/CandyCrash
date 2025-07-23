@@ -386,8 +386,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 18d787543008663489c828f904f59194, type: 2}
   - {fileID: 11400000, guid: 2258ac12b7da5ac4bb36b7a7951d17c7, type: 2}
   explosionVfx: {fileID: 8771972552311404799, guid: 375f66aa915d83d419b045e93d7b7a31, type: 3}
-  pulseScale: 1.1
-  pulseDuration: 0.4
 --- !u!4 &685598334
 Transform:
   m_ObjectHideFlags: 0

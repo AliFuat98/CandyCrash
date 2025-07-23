@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 201166992a3823f46b59e3c29748d9c2, type: 3}
   m_Name: OrangeGem
   m_EditorClassIdentifier: 
-  sprite: {fileID: -411694258, guid: dcce20007861fe0429327f78b3986769, type: 3}
+  sprite: {fileID: 4996505288972262013, guid: 0a97b566a665b7a4f8a8b1cfdcbf96e8, type: 3}
