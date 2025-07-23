@@ -310,7 +310,7 @@ public class Match3 : MonoBehaviour
     }
     void CreateGem(int x, int y)
     {
-        Gem gem = Instantiate(gemPrefab, grid.GetWorldPositionCenter(x, y), Quaternion.identity, transform);
+        var gem = ObjectPoolManager.SpawnObject(gemPrefab, grid.GetWorldPositionCenter(x, y), Quaternion.identity);
         gem.GemType = gemTypes[Random.Range(0, gemTypes.Length)];
 
         var gridObject = new GridObject<Gem>(grid, x, y);

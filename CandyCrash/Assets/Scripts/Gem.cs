@@ -16,6 +16,6 @@ public class Gem : MonoBehaviour
 
     public void DestroyGem()
     {
-        Destroy(gameObject);
+        ObjectPoolManager.ReturnObjectToPool(gameObject);
     }
 }
