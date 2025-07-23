@@ -226,10 +226,7 @@ public class ObjectPoolManager : MonoBehaviour
         if (cloneToPrefabMap.ContainsKey(obj))
         {
             cloneToPrefabMap.Remove(obj);
-            Debug.Log("test");
         }
-
-        Debug.Log("test1");
     }
 
 }
