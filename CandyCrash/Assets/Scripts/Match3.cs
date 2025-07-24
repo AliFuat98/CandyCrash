@@ -17,13 +17,14 @@ public class Match3 : MonoBehaviour
     [SerializeField] Gem gemPrefab;
     [SerializeField] GemType[] gemTypes;
     [SerializeField] GameObject explosionVfx;
+    [SerializeField] int seed = 1234;
 
     GridSystem2D<GridObject<Gem>> grid;
     InputReader inputReader;
     AudioManager audioManager;
 
     Vector2Int selectedGem;
-
+    System.Random gemRandom;
     bool isBussy;
 
     void Awake()
@@ -311,6 +312,7 @@ public class Match3 : MonoBehaviour
     void InitializeGrid()
     {
         grid = GridSystem2D<GridObject<Gem>>.VerticalGrid(width, height, cellSize, originPosition, debug);
+        gemRandom = new(seed);
 
         for (int x = 0; x < width; x++)
         {
@@ -323,7 +325,7 @@ public class Match3 : MonoBehaviour
     void CreateGem(int x, int y)
     {
         var gem = ObjectPoolManager.SpawnObject(gemPrefab, grid.GetWorldPositionCenter(x, y), Quaternion.identity);
-        gem.GemType = gemTypes[Random.Range(0, gemTypes.Length)];
+        gem.GemType = gemTypes[gemRandom.Next(0, gemTypes.Length)];
 
         var gridObject = new GridObject<Gem>(grid, x, y);
         gridObject.SetValue(gem);

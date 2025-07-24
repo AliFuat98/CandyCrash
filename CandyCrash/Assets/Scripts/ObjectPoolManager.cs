@@ -8,7 +8,7 @@ public class ObjectPoolManager : MonoBehaviour
     {
         ParticleSystem = 0,
         Gameobjects = 1,
-        SoundFX = 2,
+        SoundFX = 2
     }
 
     [SerializeField] bool addToDontDestroyOnLoad = false;
