@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using DG.Tweening;
 using Unity.VisualScripting;
+using UnityEditor.VersionControl;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class Match3 : MonoBehaviour
 {
@@ -22,10 +24,12 @@ public class Match3 : MonoBehaviour
     GridSystem2D<GridObject<Gem>> grid;
     InputReader inputReader;
     AudioManager audioManager;
+    HashSet<Vector2Int> dirtyMatches;
 
     Vector2Int selectedGem;
     System.Random gemRandom;
     bool isBussy;
+    int testCount;
 
     void Awake()
     {
@@ -36,10 +40,10 @@ public class Match3 : MonoBehaviour
     {
         InitializeGrid();
 
-        inputReader.Fire -= OnGemSelected;
         inputReader.Fire += OnGemSelected;
         selectedGem = Vector2Int.one * -1;
         isBussy = false;
+        dirtyMatches = new();
     }
     void OnDisable()
     {
@@ -80,6 +84,8 @@ public class Match3 : MonoBehaviour
     void OnGemSelected(Vector2 screenPosition)
     {
         if (isBussy) return;
+        testCount = 0;
+        dirtyMatches.Clear();
 
         var gridPos = grid.GetXY(Camera.main.ScreenToWorldPoint(screenPosition));
 
@@ -145,15 +151,55 @@ public class Match3 : MonoBehaviour
 
             audioManager.PlayMatch();
 
-            yield return StartCoroutine(ExploadeGems(firstMatches.ToList(), secondMatches.ToList()));
-            yield return StartCoroutine(MakeGemsFall());
-            yield return StartCoroutine(FillEmptySpots());
+            yield return StartCoroutine(ProcessChainReactions(firstMatches, secondMatches));
         }
         finally
         {
             isBussy = false;
+            Debug.Log(testCount);
+
         }
     }
+    IEnumerator ProcessChainReactions(HashSet<Vector2Int> firstMatches, HashSet<Vector2Int> secondMatches)
+    {
+        // Process initial matches
+        yield return StartCoroutine(ExploadeGems(firstMatches.ToList(), secondMatches.ToList()));
+        yield return StartCoroutine(MakeGemsFall());
+        yield return StartCoroutine(FillEmptySpots());
+
+        // Keep checking for new matches until no more are found
+        bool foundNewMatches;
+        do
+        {
+            foundNewMatches = false;
+            HashSet<Vector2Int> allNewMatches = new();
+
+            foreach (var match in dirtyMatches)
+            {
+                if (grid.GetValue(match.x, match.y) == null) continue;
+
+                var newMatches = FindMatches(match);
+                if (newMatches.Count > 0)
+                {
+                    foundNewMatches = true;
+                    allNewMatches.UnionWith(newMatches);
+                }
+            }
+
+            dirtyMatches.Clear();
+
+            // If we found new matches, process them
+            if (foundNewMatches)
+            {
+                audioManager.PlayMatch();
+                yield return StartCoroutine(ExplodeMatchList(allNewMatches));
+                yield return StartCoroutine(MakeGemsFall());
+                yield return StartCoroutine(FillEmptySpots());
+            }
+
+        } while (foundNewMatches);
+    }
+
     IEnumerator FillEmptySpots()
     {
         for (int x = 0; x < width; x++)
@@ -163,6 +209,8 @@ public class Match3 : MonoBehaviour
                 if (grid.GetValue(x, y) == null)
                 {
                     CreateGem(x, y);
+                    dirtyMatches.Add(new Vector2Int(x, y));
+
                     audioManager.PlayPop();
 
                     yield return new WaitForSeconds(0.1f);
@@ -193,8 +241,9 @@ public class Match3 : MonoBehaviour
                         .DOLocalMove(endValue: grid.GetWorldPositionCenter(x, y), duration: 0.1f)
                         .SetEase(gemEase);
 
-                    // play sfx
                     audioManager.PlayWoosh();
+
+                    dirtyMatches.Add(new Vector2Int(x, y));
 
                     yield return new WaitForSeconds(0.1f);
                     break;
@@ -202,6 +251,17 @@ public class Match3 : MonoBehaviour
             }
         }
     }
+
+    IEnumerator ExplodeMatchList(HashSet<Vector2Int> matches)
+    {
+        audioManager.PlayPop();
+
+        foreach (var match in matches)
+        {
+            yield return StartCoroutine(ExplodeSingleGem(match));
+        }
+    }
+
     IEnumerator ExploadeGems(List<Vector2Int> firstMatches, List<Vector2Int> secondMatches)
     {
         audioManager.PlayPop();
@@ -236,6 +296,7 @@ public class Match3 : MonoBehaviour
     {
         var gem = grid.GetValue(match.x, match.y).GetValue();
         grid.SetValue(match.x, match.y, null);
+        dirtyMatches.Add(match);
 
         ExplodeVFX(match);
 
@@ -267,13 +328,33 @@ public class Match3 : MonoBehaviour
             result.Clear();
         }
 
+        // Avoid horizontal and vertical match
+        if (result.Count == 3)
+        {
+            bool allXAreDifferent = result.Select(point => point.x).Distinct().Count() == 3;
+            bool allYAreDifferent = result.Select(point => point.y).Distinct().Count() == 3;
+
+
+            if (allXAreDifferent || allYAreDifferent)
+            {
+                return result;
+            }
+
+            result.Clear();
+        }
+
         return result;
     }
 
     void FindMatchesDFS(GemType gemType, Vector2Int currentPoint, HashSet<Vector2Int> result)
     {
+        testCount++;
+
         // bound check
         if (!IsValidPosition(currentPoint)) return;
+
+        // null grid
+        if (IsEmptyPosition(currentPoint)) return;
 
         // already visited
         if (result.Contains(currentPoint)) return;
@@ -319,9 +400,23 @@ public class Match3 : MonoBehaviour
             for (int y = 0; y < height; y++)
             {
                 CreateGem(x, y);
+                CheckMatch(x, y);
             }
         }
     }
+    void CheckMatch(int x, int y)
+    {
+        List<GemType> possibleTypes = new(gemTypes);
+
+        var result = FindMatches(new Vector2Int(x, y));
+        Gem createdGem = grid.GetValue(x, y).GetValue();
+        if (result.Count > 2)
+        {
+            possibleTypes.Remove(createdGem.GemType);
+            createdGem.GemType = possibleTypes[gemRandom.Next(0, possibleTypes.Count)];
+        }
+    }
+
     void CreateGem(int x, int y)
     {
         var gem = ObjectPoolManager.SpawnObject(gemPrefab, grid.GetWorldPositionCenter(x, y), Quaternion.identity);

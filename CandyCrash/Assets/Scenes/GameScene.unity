@@ -377,7 +377,7 @@ MonoBehaviour:
   height: 9
   cellSize: 1
   originPosition: {x: -3.5, y: -4.5, z: 0}
-  debug: 1
+  debug: 0
   gemEase: 5
   gemPrefab: {fileID: 1938539644420791260, guid: 152f705a0a22b544892f4ec89b342cd6, type: 3}
   gemTypes:
@@ -388,7 +388,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6c8ec6d0614bd8a4f987ff42b4ba7d81, type: 2}
   - {fileID: 11400000, guid: a42df6d660ca24a4a941518c08636101, type: 2}
   explosionVfx: {fileID: 8771972552311404799, guid: 375f66aa915d83d419b045e93d7b7a31, type: 3}
-  seed: 1234
+  seed: 1238
 --- !u!4 &685598334
 Transform:
   m_ObjectHideFlags: 0
