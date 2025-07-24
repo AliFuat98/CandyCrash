@@ -1,11 +1,10 @@
+using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using DG.Tweening;
 using Unity.VisualScripting;
-using UnityEditor.VersionControl;
+using UnityEditor;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class Match3 : MonoBehaviour
 {
@@ -36,6 +35,7 @@ public class Match3 : MonoBehaviour
         inputReader = GetComponent<InputReader>();
         audioManager = GetComponent<AudioManager>();
     }
+
     void Start()
     {
         InitializeGrid();
