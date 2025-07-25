@@ -24,6 +24,7 @@ public class Match3 : MonoBehaviour
     InputReader inputReader;
     AudioManager audioManager;
     HashSet<Vector2Int> dirtyPoints;
+    const int minMatchCount = 3;
 
     Vector2Int selectedGem;
     System.Random gemRandom;
@@ -151,13 +152,12 @@ public class Match3 : MonoBehaviour
 
             audioManager.PlayMatch();
 
-            yield return StartCoroutine(ProcessChainReactions(new List<List<Vector2Int>> { firstMatches.ToList(),secondMatches.ToList() }));
+            yield return StartCoroutine(ProcessChainReactions(new List<List<Vector2Int>> { firstMatches.ToList(), secondMatches.ToList() }));
         }
         finally
         {
             isBussy = false;
             Debug.Log(testCount);
-
         }
     }
     IEnumerator ProcessChainReactions(List<List<Vector2Int>> matchesLists)
@@ -169,12 +169,14 @@ public class Match3 : MonoBehaviour
 
         // Keep checking for new matches until no more are found
         bool foundNewMatches;
-        do {
+        do
+        {
             foundNewMatches = false;
             var newMachesList = GetNewMatchList();
-            
+
             // If we found new matches, process them
-            if (newMachesList.Count > 0) {
+            if (newMachesList.Count > 0)
+            {
                 audioManager.PlayMatch();
                 yield return StartCoroutine(ExplodeGems(newMachesList));
                 yield return StartCoroutine(MakeGemsFall());
@@ -185,22 +187,26 @@ public class Match3 : MonoBehaviour
         } while (foundNewMatches);
     }
 
-    List<List<Vector2Int>> GetNewMatchList() {
+    List<List<Vector2Int>> GetNewMatchList()
+    {
         List<List<Vector2Int>> newMatchList = new();
         HashSet<Vector2Int> visitedPoints = new();
 
-        foreach (var point in dirtyPoints) {
+        foreach (var point in dirtyPoints)
+        {
             if (grid.GetValue(point.x, point.y) == null) continue;
             if (visitedPoints.Contains(point)) continue;
 
             var newMatches = FindMatches(point);
-            if (newMatches.Count > 0) {
+            if (newMatches.Count > 0)
+            {
                 // Filter out already-visited points from this match group
                 List<Vector2Int> uniqueMatches = newMatches
                     .Where(p => !visitedPoints.Contains(p))
                     .ToList();
 
-                if (uniqueMatches.Count > 0) {
+                if (uniqueMatches.Count > 0)
+                {
                     newMatchList.Add(uniqueMatches);
                     visitedPoints.UnionWith(uniqueMatches); // Mark these as visited
                 }
@@ -232,10 +238,11 @@ public class Match3 : MonoBehaviour
     }
     IEnumerator MakeGemsFall()
     {
-        for (int y = 0; y < height; y++) {
+        for (int y = 0; y < height; y++)
+        {
             bool fallHappenned = false;
             for (int x = 0; x < width; x++)
-        {
+            {
 
                 if (grid.GetValue(x, y) != null) continue;
                 // x,y is empty here
@@ -259,20 +266,11 @@ public class Match3 : MonoBehaviour
                     break;
                 }
             }
-            if (fallHappenned) {
+            if (fallHappenned)
+            {
                 audioManager.PlayWoosh();
                 yield return new WaitForSeconds(0.1f);
             }
-        }
-    }
-
-    IEnumerator ExplodeMatchList(HashSet<Vector2Int> matches)
-    {
-        audioManager.PlayPop();
-
-        foreach (var match in matches)
-        {
-            yield return StartCoroutine(ExplodeSingleGem(match));
         }
     }
 
@@ -299,36 +297,6 @@ public class Match3 : MonoBehaviour
         }
     }
 
-    IEnumerator ExplodeGems(List<Vector2Int> firstMatches, List<Vector2Int> secondMatches)
-    {
-        audioManager.PlayPop();
-
-        int firstCount = firstMatches.Count;
-        int secondCount = secondMatches.Count;
-
-        int minCount = Mathf.Min(firstCount, secondCount);
-        for (int i = 0; i < minCount; i++)
-        {
-            yield return StartCoroutine(ExplodeSingleGem(firstMatches[i]));
-            yield return StartCoroutine(ExplodeSingleGem(secondMatches[i]));
-        }
-
-        // Handle remaining gems in the longer list (if any)
-        if (firstCount > secondCount)
-        {
-            for (int i = minCount; i < firstCount; i++)
-            {
-                yield return StartCoroutine(ExplodeSingleGem(firstMatches[i]));
-            }
-        }
-        else if (secondCount > firstCount)
-        {
-            for (int i = minCount; i < secondCount; i++)
-            {
-                yield return StartCoroutine(ExplodeSingleGem(secondMatches[i]));
-            }
-        }
-    }
     IEnumerator ExplodeSingleGem(Vector2Int match)
     {
         var gem = grid.GetValue(match.x, match.y).GetValue();
@@ -357,23 +325,20 @@ public class Match3 : MonoBehaviour
         HashSet<Vector2Int> result = new();
         FindMatchesDFS(gemType, gridPos, result);
 
-        if (result.Count < 3)
+        if (result.Count < minMatchCount)
         {
             result.Clear();
         }
 
-        // Avoid horizontal and vertical match
-        if (result.Count == 3)
+        if (result.Count == minMatchCount)
         {
             bool allXAreDifferent = result.Select(point => point.x).Distinct().Count() == 3;
             bool allYAreDifferent = result.Select(point => point.y).Distinct().Count() == 3;
-
 
             if (allXAreDifferent || allYAreDifferent)
             {
                 return result;
             }
-
             result.Clear();
         }
 
@@ -441,7 +406,7 @@ public class Match3 : MonoBehaviour
 
         var result = FindMatches(new Vector2Int(x, y));
         Gem createdGem = grid.GetValue(x, y).GetValue();
-        if (result.Count > 2)
+        if (result.Count >= minMatchCount)
         {
             possibleTypes.Remove(createdGem.GemType);
             createdGem.GemType = possibleTypes[gemRandom.Next(0, possibleTypes.Count)];
