@@ -388,6 +388,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6c8ec6d0614bd8a4f987ff42b4ba7d81, type: 2}
   - {fileID: 11400000, guid: a42df6d660ca24a4a941518c08636101, type: 2}
   explosionVfx: {fileID: 8771972552311404799, guid: 375f66aa915d83d419b045e93d7b7a31, type: 3}
+  horizontalExplosionVfx: {fileID: 5112403345868107898, guid: a7d01e6a9b05e7743bb2a0fbf27d7d17, type: 3}
   seed: 1238
 --- !u!4 &685598334
 Transform:

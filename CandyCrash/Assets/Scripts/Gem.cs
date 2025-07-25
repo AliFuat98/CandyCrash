@@ -7,26 +7,51 @@ public class Gem : MonoBehaviour
     [SerializeField] float pulseScale = 1.2f;
     [SerializeField] float pulseDuration = 0.5f;
 
+    ISpecialGemEffect _specialGemEffect;
+    public ISpecialGemEffect SpecialGemEffect
+    {
+        get { return _specialGemEffect; }
+        set
+        {
+            if (value != null)
+            {
+                gemRenderer.color = Color.gray;
+            }
+            else
+            {
+                gemRenderer.color = Color.white;
+            }
+
+            _specialGemEffect = value;
+        }
+    }
+
     GemType _gemType;
     public GemType GemType
     {
         get { return _gemType; }
         set
         {
-            GetComponent<SpriteRenderer>().sprite = value.sprite;
+            gemRenderer.sprite = value.sprite;
             _gemType = value;
         }
     }
+
     Vector3 originalScale;
     int originalSortOrder;
-    Renderer gemRenderer;
+    SpriteRenderer gemRenderer;
 
     void Awake()
     {
         originalScale = transform.localScale;
-        gemRenderer = GetComponent<Renderer>();
+        gemRenderer = GetComponent<SpriteRenderer>();
         gemRenderer.material.SetFloat("_OutlineEnabled", 0);
         originalSortOrder = gemRenderer.sortingOrder;
+    }
+
+    void OnEnable()
+    {
+        SpecialGemEffect = null;
     }
 
     public void DestroyGem()

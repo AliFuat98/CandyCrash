@@ -1,4 +1,5 @@
 using DG.Tweening;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +19,7 @@ public class Match3 : MonoBehaviour
     [SerializeField] Gem gemPrefab;
     [SerializeField] GemType[] gemTypes;
     [SerializeField] GameObject explosionVfx;
+    [SerializeField] GameObject horizontalExplosionVfx;
     [SerializeField] int seed = 1234;
 
     GridSystem2D<GridObject<Gem>> grid;
@@ -291,34 +293,106 @@ public class Match3 : MonoBehaviour
             {
                 if (i < list.Count)
                 {
-                    yield return StartCoroutine(ExplodeSingleGem(list[i]));
+                    if (i == 0)
+                    {
+                        yield return StartCoroutine(TryCreateSpecialGem(list));
+                    }
+                    else
+                    {
+                        yield return StartCoroutine(ExplodeSingleGem(list[i]));
+                    }
                 }
             }
         }
     }
 
+    IEnumerator TryCreateSpecialGem(List<Vector2Int> matchList)
+    {
+        var match = matchList[0];
+        var gridObject = grid.GetValue(match.x, match.y);
+        if (gridObject == null) yield break;
+
+        var gem = gridObject.GetValue();
+
+        bool allXAreDifferent = matchList.Select(point => point.x).Distinct().Count() == 3;
+        if (allXAreDifferent)
+        //if (allXAreDifferent && matchList.Count == 4)
+        {
+            gem.SpecialGemEffect = new ClearRowEffect();
+            yield return new WaitForSeconds(0.1f);
+            yield break;
+        }
+
+        // couldnt create special gem
+        yield return StartCoroutine(ExplodeSingleGem(match));
+    }
+
     IEnumerator ExplodeSingleGem(Vector2Int match)
     {
-        var gem = grid.GetValue(match.x, match.y).GetValue();
+        var gridObject = grid.GetValue(match.x, match.y);
+        if (gridObject == null) yield break;
+
+        var gem = gridObject.GetValue();
+
+        ExplodeVFX(match);
+        gem.transform.DOPunchScale(punch: Vector3.one * 0.1f, duration: 0.1f, vibrato: 1, elasticity: 0.5f);
         grid.SetValue(match.x, match.y, null);
         dirtyPoints.Add(match);
 
-        ExplodeVFX(match);
-
-        gem.transform.DOPunchScale(punch: Vector3.one * 0.1f, duration: 0.1f, vibrato: 1, elasticity: 0.5f);
         gem.DestroyGem();
+
+        if (gem.SpecialGemEffect != null)
+        {
+            yield return StartCoroutine(gem.SpecialGemEffect.Execute(match, this));
+        }
+
         yield return new WaitForSeconds(0.1f);
     }
+
+    public IEnumerator ExplodeRow(Vector2Int match)
+    {
+        ExplodeHorizontalVFX(match);
+        yield return new WaitForSeconds(0.4f);
+
+        for (int x = 0; x < width; x++)
+        {
+            var gridObject = grid.GetValue(x, match.y);
+            if (gridObject == null) continue;
+
+            StartCoroutine(ExplodeSingleGem(new Vector2Int(x, match.y)));
+        }
+
+        yield return new WaitForSeconds(0.1f);
+    }
+
+    public IEnumerator ExplodeColumn(int column)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            var gridObject = grid.GetValue(column, y);
+            if (gridObject == null) continue;
+
+            yield return StartCoroutine(ExplodeSingleGem(new Vector2Int(column, y)));
+        }
+    }
+
     void ExplodeVFX(Vector2Int match)
     {
         Vector3 spawnPos = grid.GetWorldPositionCenter(match.x, match.y);
         StartCoroutine(RelaseVfxDelay(ObjectPoolManager.SpawnObject(explosionVfx, spawnPos, Quaternion.identity, ObjectPoolManager.PoolType.ParticleSystem)));
     }
+    void ExplodeHorizontalVFX(Vector2Int match)
+    {
+        Vector3 spawnPos = grid.GetWorldPositionCenter(match.x, match.y);
+        StartCoroutine(RelaseVfxDelay(ObjectPoolManager.SpawnObject(horizontalExplosionVfx, spawnPos, Quaternion.identity, ObjectPoolManager.PoolType.ParticleSystem)));
+    }
+
     IEnumerator RelaseVfxDelay(GameObject obj)
     {
         yield return new WaitForSeconds(0.5f);
         ObjectPoolManager.ReturnObjectToPool(obj, ObjectPoolManager.PoolType.ParticleSystem);
     }
+
     HashSet<Vector2Int> FindMatches(Vector2Int gridPos)
     {
         var gemType = grid.GetValue(gridPos.x, gridPos.y).GetValue().GemType;
